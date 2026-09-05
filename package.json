@@ -1,0 +1,36 @@
+{
+  "name": "kpn-server",
+  "version": "1.0.0",
+  "description": "KPN Promoters Backend REST API & CMS Server",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "seed": "node src/scripts/seed.js"
+  },
+  "keywords": [
+    "real-estate",
+    "kpn-promoters",
+    "cms",
+    "api",
+    "express",
+    "mongodb"
+  ],
+  "author": "KPN Promoters",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.6.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.12.0",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^10.0.0"
+  }
+}
