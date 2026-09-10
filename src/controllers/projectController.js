@@ -154,7 +154,10 @@ export const createProject = async (req, res, next) => {
 
 export const updateProject = async (req, res, next) => {
   try {
-    const project = await Project.findByPk(req.params.id);
+    let project = await Project.findByPk(req.params.id);
+    if (!project) {
+      project = await Project.findOne({ where: { slug: req.params.id } });
+    }
     if (!project) {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
@@ -198,7 +201,10 @@ export const updateProject = async (req, res, next) => {
 
 export const togglePublishProject = async (req, res, next) => {
   try {
-    const project = await Project.findByPk(req.params.id);
+    let project = await Project.findByPk(req.params.id);
+    if (!project) {
+      project = await Project.findOne({ where: { slug: req.params.id } });
+    }
     if (!project) {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
@@ -218,7 +224,10 @@ export const togglePublishProject = async (req, res, next) => {
 
 export const deleteProject = async (req, res, next) => {
   try {
-    const project = await Project.findByPk(req.params.id);
+    let project = await Project.findByPk(req.params.id);
+    if (!project) {
+      project = await Project.findOne({ where: { slug: req.params.id } });
+    }
     if (!project) {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
