@@ -1,5 +1,32 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import emailQueueService from './emailQueueService.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const logoPath = path.resolve(__dirname, '../assets/kpn_logo.png');
+
+/**
+ * Helper to return CID inline attachment config or web fallback for KPN logo in emails
+ */
+function getLogoConfig() {
+  const hasLocal = fs.existsSync(logoPath);
+  return {
+    src: hasLocal ? 'cid:kpnlogo' : 'https://www.kpnpromoters.in/images/kpn_logo.png',
+    attachments: hasLocal
+      ? [
+          {
+            filename: 'kpn_logo.png',
+            path: logoPath,
+            cid: 'kpnlogo',
+          },
+        ]
+      : [],
+  };
+}
 
 /**
  * Creates and caches the Nodemailer SMTP transporter.
@@ -49,6 +76,7 @@ class EmailNotificationProvider {
         : '"KPN Promoters (No-Reply)" <noreply@kpnpromoters.in>');
 
     const subject = `Enquiry Received: KPN Promoters [Ref #${String(enquiry._id || '').slice(-6).toUpperCase() || 'NEW'}]`;
+    const logoConfig = getLogoConfig();
 
     const html = `
 <!DOCTYPE html>
@@ -65,11 +93,24 @@ class EmailNotificationProvider {
         <!-- Main Card -->
         <table role="presentation" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
           
-          <!-- Header Banner -->
+          <!-- Brand Logo Header -->
           <tr>
-            <td style="background: linear-gradient(135deg, #29247c 0%, #1a174d 100%); padding: 35px 30px; text-align: center;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 900; letter-spacing: -0.5px;">KPN PROMOTERS</h1>
-              <p style="margin: 6px 0 0 0; color: #fca5a5; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px;">Landmark Real Estate Developers</p>
+            <td align="center" style="background-color: #ffffff; padding: 32px 25px 22px 25px; text-align: center; border-bottom: 3px solid #f12131;">
+              <a href="https://kpnpromoters.in" target="_blank" style="text-decoration: none; display: inline-block;">
+                <img src="${logoConfig.src}" alt="KPN Promoters Pvt Ltd" width="180" height="79" style="display: block; margin: 0 auto; max-width: 180px; width: 180px; height: auto; border: 0;" />
+              </a>
+              <p style="margin: 10px 0 0 0; color: #29247c; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px;">
+                Landmark Real Estate Developers
+              </p>
+            </td>
+          </tr>
+
+          <!-- Sub Header Banner -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #29247c 0%, #1a174d 100%); padding: 18px 30px; text-align: center;">
+              <p style="margin: 0; color: #ffffff; font-size: 14px; font-weight: 800; letter-spacing: 0.5px;">
+                OFFICIAL ENQUIRY ACKNOWLEDGMENT
+              </p>
             </td>
           </tr>
 
@@ -132,8 +173,9 @@ class EmailNotificationProvider {
 
           <!-- Footer -->
           <tr>
-            <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 30px; text-align: center; font-size: 11px; color: #94a3b8;">
-              <p style="margin: 0;">© ${new Date().getFullYear()} KPN Promoters Pvt Ltd. All rights reserved.</p>
+            <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 25px 30px; text-align: center; font-size: 11px; color: #94a3b8;">
+              <img src="${logoConfig.src}" alt="KPN Promoters" width="110" height="48" style="display: block; margin: 0 auto 12px auto; max-width: 110px; width: 110px; height: auto; opacity: 0.9; border: 0;" />
+              <p style="margin: 0; font-weight: 600; color: #64748b;">© ${new Date().getFullYear()} KPN Promoters Pvt Ltd. All rights reserved.</p>
               <p style="margin: 4px 0 0 0;">No. 48, Karanai Puducherry Rd, Urapakkam, Chennai - 603210</p>
             </td>
           </tr>
@@ -145,26 +187,21 @@ class EmailNotificationProvider {
 </html>
 `;
 
-    if (transporter) {
-      try {
-        await transporter.sendMail({
-          from: fromAddress,
-          to: enquiry.email,
-          subject,
-          html,
-        });
-        console.log(`[Notification - Email Sent] No-Reply confirmation successfully delivered to customer: ${enquiry.email}`);
-        return true;
-      } catch (err) {
-        console.warn(`[Notification - Email Failed] Could not deliver email to ${enquiry.email}:`, err.message);
-        return false;
-      }
-    } else {
-      // SMTP not configured yet -> Log clean development preview
-      console.log(`[Notification - Customer No-Reply Preview] (Configure SMTP in .env to send real email)`);
-      console.log(`   To: ${enquiry.email}`);
-      console.log(`   Subject: ${subject}`);
-      console.log(`   Ref: #${String(enquiry._id || '').slice(-6).toUpperCase()}`);
+    try {
+      await emailQueueService.enqueueEmail({
+        recipient: enquiry.email,
+        recipientType: 'customer',
+        subject,
+        htmlContent: html,
+        metadata: {
+          enquiryId: enquiry._id || enquiry.id,
+          customerName: enquiry.name,
+          projectName: enquiry.projectName,
+        },
+      });
+      return true;
+    } catch (err) {
+      console.warn(`[Notification] Failed to enqueue customer confirmation to ${enquiry.email}:`, err.message);
       return false;
     }
   }
@@ -186,6 +223,7 @@ class EmailNotificationProvider {
         : '"KPN Website Leads" <leads@kpnpromoters.in>');
 
     const subject = `🚨 [New Lead Alert] ${enquiry.name} (${enquiry.phone}) - ${enquiry.projectName || enquiry.source || 'Website'}`;
+    const logoConfig = getLogoConfig();
 
     const html = `
 <!DOCTYPE html>
@@ -195,7 +233,12 @@ class EmailNotificationProvider {
   <title>New Lead Alert</title>
 </head>
 <body style="font-family: Arial, sans-serif; background: #f1f5f9; padding: 25px; color: #1e293b;">
-  <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden;">
+  <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+    <div style="background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 3px solid #f12131;">
+      <a href="https://kpnpromoters.in" target="_blank" style="text-decoration: none; display: inline-block;">
+        <img src="${logoConfig.src}" alt="KPN Promoters" width="150" height="66" style="display: block; margin: 0 auto; max-width: 150px; width: 150px; height: auto; border: 0;" />
+      </a>
+    </div>
     <div style="background: #29247c; padding: 20px; color: #ffffff;">
       <h2 style="margin: 0; font-size: 20px;">🚨 New Lead Captured on Website</h2>
       <p style="margin: 5px 0 0 0; font-size: 12px; color: #fca5a5;">Source: ${enquiry.source || 'Website Form'}</p>
@@ -241,24 +284,23 @@ class EmailNotificationProvider {
 </html>
 `;
 
-    if (transporter) {
-      try {
-        await transporter.sendMail({
-          from: fromAddress,
-          to: adminEmail,
-          subject,
-          html,
-        });
-        console.log(`[Notification - Admin Alert Sent] Dispatched new lead alert to ${adminEmail}`);
-        return true;
-      } catch (err) {
-        console.warn(`[Notification - Admin Alert Failed]:`, err.message);
-        return false;
-      }
-    } else {
-      console.log(`[Notification - Admin Lead Alert Preview] (Configure SMTP in .env to send real email)`);
-      console.log(`   To: ${adminEmail}`);
-      console.log(`   Lead: ${enquiry.name} | 📞 ${enquiry.phone} | 🏢 ${enquiry.projectName || enquiry.source}`);
+    try {
+      await emailQueueService.enqueueEmail({
+        recipient: adminEmail,
+        recipientType: 'admin',
+        subject,
+        htmlContent: html,
+        metadata: {
+          enquiryId: enquiry._id || enquiry.id,
+          leadName: enquiry.name,
+          phone: enquiry.phone,
+          unitNumber: enquiry.unitNumber,
+          projectName: enquiry.projectName,
+        },
+      });
+      return true;
+    } catch (err) {
+      console.warn(`[Notification] Failed to enqueue admin alert to ${adminEmail}:`, err.message);
       return false;
     }
   }

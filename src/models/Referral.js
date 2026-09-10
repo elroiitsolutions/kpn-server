@@ -1,32 +1,71 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const { Schema } = mongoose;
-
-const ReferralSchema = new Schema(
+export const Referral = sequelize.define(
+  'Referral',
   {
-    referrerName: { type: String, required: true, trim: true },
-    referrerPhone: { type: String, required: true, trim: true },
-    referrerEmail: { type: String, trim: true },
-    referredName: { type: String, required: true, trim: true },
-    referredPhone: { type: String, required: true, trim: true },
-    referredEmail: { type: String, trim: true },
-    project: { type: Schema.Types.ObjectId, ref: 'Project' },
-    projectName: { type: String, default: '' },
+    id: {
+      type: DataTypes.STRING(64),
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
+    },
+    referrerName: {
+      type: DataTypes.STRING(150),
+      allowNull: false,
+    },
+    referrerPhone: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+    },
+    referrerEmail: {
+      type: DataTypes.STRING(180),
+    },
+    referredName: {
+      type: DataTypes.STRING(150),
+      allowNull: false,
+    },
+    referredPhone: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+    },
+    referredEmail: {
+      type: DataTypes.STRING(180),
+    },
+    projectId: {
+      type: DataTypes.STRING(64),
+    },
+    projectName: {
+      type: DataTypes.STRING(150),
+      defaultValue: '',
+    },
     status: {
-      type: String,
-      enum: ['Referral Submitted', 'Contacted', 'Site Visit', 'Interested', 'Booked', 'Completed / Closed'],
-      default: 'Referral Submitted',
+      type: DataTypes.STRING(50),
+      defaultValue: 'Referral Submitted',
     },
     rewardStatus: {
-      type: String,
-      enum: ['Pending', 'Approved', 'Disbursed', 'Ineligible'],
-      default: 'Pending',
+      type: DataTypes.STRING(50),
+      defaultValue: 'Pending',
     },
-    notes: { type: String, default: '' },
+    notes: {
+      type: DataTypes.TEXT,
+      defaultValue: '',
+    },
   },
   {
+    tableName: 'referrals',
     timestamps: true,
+    indexes: [
+      { fields: ['status'] },
+      { fields: ['rewardStatus'] },
+    ],
   }
 );
 
-export default mongoose.models.Referral || mongoose.model('Referral', ReferralSchema);
+Referral.prototype.toJSON = function () {
+  const values = { ...this.get() };
+  values._id = values.id;
+  values.project = values.projectId;
+  return values;
+};
+
+export default Referral;

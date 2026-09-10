@@ -18,17 +18,25 @@ export const getDashboardStats = async (req, res, next) => {
       recentProjects,
       recentBlogs,
     ] = await Promise.all([
-      Project.countDocuments(),
-      Project.countDocuments({ isPublished: true }),
-      Project.countDocuments({ isPublished: false }),
-      Enquiry.countDocuments(),
-      Enquiry.countDocuments({ status: 'New' }),
-      Blog.countDocuments(),
-      Blog.countDocuments({ status: 'Published' }),
-      Referral.countDocuments(),
-      Enquiry.find().sort({ createdAt: -1 }).limit(5),
-      Project.find().sort({ createdAt: -1 }).limit(4).select('name slug propertyType status budget image isPublished'),
-      Blog.find().sort({ createdAt: -1 }).limit(4).select('title slug category status publishedDate featuredImage'),
+      Project.count(),
+      Project.count({ where: { isPublished: true } }),
+      Project.count({ where: { isPublished: false } }),
+      Enquiry.count(),
+      Enquiry.count({ where: { status: 'New' } }),
+      Blog.count(),
+      Blog.count({ where: { status: 'Published' } }),
+      Referral.count(),
+      Enquiry.findAll({ order: [['createdAt', 'DESC']], limit: 5 }),
+      Project.findAll({
+        attributes: ['id', 'name', 'slug', 'propertyType', 'status', 'budget', 'image', 'isPublished'],
+        order: [['createdAt', 'DESC']],
+        limit: 4,
+      }),
+      Blog.findAll({
+        attributes: ['id', 'title', 'slug', 'category', 'status', 'publishedDate', 'featuredImage'],
+        order: [['createdAt', 'DESC']],
+        limit: 4,
+      }),
     ]);
 
     res.status(200).json({

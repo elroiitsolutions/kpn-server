@@ -1,21 +1,60 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const { Schema } = mongoose;
-
-const TestimonialSchema = new Schema(
+export const Testimonial = sequelize.define(
+  'Testimonial',
   {
-    title: { type: String, required: true },
-    author: { type: String, required: true },
-    role: { type: String, default: 'Homeowner' },
-    avatar: { type: String, default: '' },
-    quote: { type: String, required: true },
-    rating: { type: Number, default: 5, min: 1, max: 5 },
-    order: { type: Number, default: 0 },
-    status: { type: String, enum: ['Draft', 'Published'], default: 'Published' },
+    id: {
+      type: DataTypes.STRING(64),
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
+    },
+    title: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+    },
+    author: {
+      type: DataTypes.STRING(150),
+      allowNull: false,
+    },
+    role: {
+      type: DataTypes.STRING(100),
+      defaultValue: 'Homeowner',
+    },
+    avatar: {
+      type: DataTypes.TEXT,
+      defaultValue: '',
+    },
+    quote: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+    },
+    rating: {
+      type: DataTypes.INTEGER,
+      defaultValue: 5,
+    },
+    order: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    status: {
+      type: DataTypes.ENUM('Draft', 'Published'),
+      defaultValue: 'Published',
+    },
   },
   {
+    tableName: 'testimonials',
     timestamps: true,
+    indexes: [
+      { fields: ['status', 'order'] },
+    ],
   }
 );
 
-export default mongoose.models.Testimonial || mongoose.model('Testimonial', TestimonialSchema);
+Testimonial.prototype.toJSON = function () {
+  const values = { ...this.get() };
+  values._id = values.id;
+  return values;
+};
+
+export default Testimonial;

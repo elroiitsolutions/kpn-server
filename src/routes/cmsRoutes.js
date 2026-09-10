@@ -13,7 +13,9 @@ const router = Router();
 
 // Homepage CMS
 router.get('/home', getHomepageCMS);
+router.get('/homepage', getHomepageCMS);
 router.put('/home', protect, authorize('admin', 'superadmin'), updateHomepageCMS);
+router.put('/homepage', protect, authorize('admin', 'superadmin'), updateHomepageCMS);
 
 // Menu CMS
 router.get('/menu', getMenuCMS);

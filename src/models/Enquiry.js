@@ -1,54 +1,98 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const { Schema } = mongoose;
-
-const EnquiryNoteSchema = new Schema(
+export const Enquiry = sequelize.define(
+  'Enquiry',
   {
-    author: { type: String, required: true },
-    text: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now },
-  },
-  { _id: false }
-);
-
-const EnquirySchema = new Schema(
-  {
-    name: { type: String, required: true, trim: true },
-    email: { type: String, lowercase: true, trim: true },
-    phone: { type: String, trim: true, default: '' },
-    project: { type: Schema.Types.ObjectId, ref: 'Project' },
-    projectName: { type: String, default: '' },
-    message: { type: String, default: '' },
+    id: {
+      type: DataTypes.STRING(64),
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
+    },
+    name: {
+      type: DataTypes.STRING(150),
+      allowNull: false,
+    },
+    email: {
+      type: DataTypes.STRING(180),
+      defaultValue: '',
+    },
+    phone: {
+      type: DataTypes.STRING(50),
+      defaultValue: '',
+    },
+    projectId: {
+      type: DataTypes.STRING(64),
+    },
+    projectName: {
+      type: DataTypes.STRING(150),
+      defaultValue: '',
+    },
+    block: {
+      type: DataTypes.STRING(100),
+      defaultValue: '',
+    },
+    floor: {
+      type: DataTypes.STRING(100),
+      defaultValue: '',
+    },
+    unitNumber: {
+      type: DataTypes.STRING(100),
+      defaultValue: '',
+    },
+    unitType: {
+      type: DataTypes.STRING(100),
+      defaultValue: '',
+    },
+    message: {
+      type: DataTypes.TEXT,
+      defaultValue: '',
+    },
     source: {
-      type: String,
-      enum: [
-        'Project Detail',
-        'Contact Page',
-        'Chatbot',
-        'Associate Page',
-        'Brochure Download',
-        'Direct Call',
-        'Website',
-        'General',
-        'Other',
-      ],
-      default: 'Contact Page',
+      type: DataTypes.STRING(50),
+      defaultValue: 'Contact Page',
     },
     status: {
-      type: String,
-      enum: ['New', 'Contacted', 'Site Visit', 'Interested', 'Negotiation', 'Booked', 'Closed'],
-      default: 'New',
-      index: true,
+      type: DataTypes.ENUM('New', 'Contacted', 'Site Visit', 'Interested', 'Negotiation', 'Booked', 'Closed', 'Waitlisted', 'Sold'),
+      defaultValue: 'New',
     },
-    assignedStaff: { type: String },
+    assignedStaff: {
+      type: DataTypes.STRING(100),
+      defaultValue: '',
+    },
     notes: {
-      type: [EnquiryNoteSchema],
-      default: [],
+      type: DataTypes.JSON,
+      defaultValue: [],
     },
   },
   {
+    tableName: 'enquiries',
     timestamps: true,
+    indexes: [
+      { fields: ['status'] },
+      { fields: ['projectId'] },
+      { fields: ['unitNumber'] },
+    ],
   }
 );
 
-export default mongoose.models.Enquiry || mongoose.model('Enquiry', EnquirySchema);
+const safeParseJson = (val, fallback) => {
+  if (typeof val === 'string') {
+    try {
+      return JSON.parse(val);
+    } catch {
+      return fallback;
+    }
+  }
+  return val !== undefined && val !== null ? val : fallback;
+};
+
+Enquiry.prototype.toJSON = function () {
+  const values = { ...this.get() };
+  values._id = values.id;
+  values.project = values.projectId;
+  values.notes = safeParseJson(values.notes, []);
+  return values;
+};
+
+export default Enquiry;

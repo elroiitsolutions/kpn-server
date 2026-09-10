@@ -1,14 +1,18 @@
 import dotenv from 'dotenv';
 import app from './app.js';
 import { connectDB } from './config/db.js';
+import { emailQueueService } from './services/emailQueueService.js';
 
 dotenv.config();
 
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
-  // Connect to MongoDB
+  // Connect to Database
   await connectDB();
+
+  // Start Resilient Email Queue Worker (auto-retries, zero dropped emails)
+  emailQueueService.startQueueWorker(15000);
 
   app.listen(PORT, () => {
     console.log(`===================================================`);

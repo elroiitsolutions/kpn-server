@@ -1,60 +1,69 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const { Schema } = mongoose;
-
-const ProjectUnitSchema = new Schema(
+export const ProjectUnit = sequelize.define(
+  'ProjectUnit',
   {
-    project: {
-      type: Schema.Types.ObjectId,
-      ref: 'Project',
-      required: true,
-      index: true,
+    id: {
+      type: DataTypes.STRING(64),
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
+    },
+    projectId: {
+      type: DataTypes.STRING(64),
+      allowNull: false,
     },
     block: {
-      type: String,
-      required: true,
-      trim: true,
+      type: DataTypes.STRING(50),
+      allowNull: false,
     },
     floor: {
-      type: String,
-      required: true,
-      trim: true,
+      type: DataTypes.STRING(50),
+      allowNull: false,
     },
     unitNumber: {
-      type: String,
-      required: true,
-      trim: true,
+      type: DataTypes.STRING(50),
+      allowNull: false,
     },
     type: {
-      type: String,
-      default: '2 BHK',
+      type: DataTypes.STRING(50),
+      defaultValue: '2 BHK',
     },
     sizeSqFt: {
-      type: Number,
-      default: 0,
+      type: DataTypes.DOUBLE,
+      defaultValue: 0,
     },
     facing: {
-      type: String,
-      default: 'North',
+      type: DataTypes.STRING(50),
+      defaultValue: 'North',
     },
     price: {
-      type: Number,
+      type: DataTypes.DOUBLE,
     },
     status: {
-      type: String,
-      enum: ['Available', 'Reserved', 'Sold', 'Blocked'],
-      default: 'Available',
+      type: DataTypes.ENUM('Available', 'Reserved', 'Sold', 'Blocked'),
+      defaultValue: 'Available',
     },
     remarks: {
-      type: String,
-      default: '',
+      type: DataTypes.TEXT,
+      defaultValue: '',
     },
   },
   {
+    tableName: 'project_units',
     timestamps: true,
+    indexes: [
+      { fields: ['projectId'] },
+      { unique: true, fields: ['projectId', 'block', 'floor', 'unitNumber'] },
+    ],
   }
 );
 
-ProjectUnitSchema.index({ project: 1, block: 1, floor: 1, unitNumber: 1 }, { unique: true });
+ProjectUnit.prototype.toJSON = function () {
+  const values = { ...this.get() };
+  values._id = values.id;
+  values.project = values.projectId;
+  return values;
+};
 
-export default mongoose.models.ProjectUnit || mongoose.model('ProjectUnit', ProjectUnitSchema);
+export default ProjectUnit;

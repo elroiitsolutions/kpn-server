@@ -1,20 +1,56 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const { Schema } = mongoose;
-
-const AwardSchema = new Schema(
+export const Award = sequelize.define(
+  'Award',
   {
-    title: { type: String, required: true },
-    organization: { type: String, required: true },
-    year: { type: String, required: true },
-    description: { type: String, default: '' },
-    image: { type: String, required: true },
-    order: { type: Number, default: 0 },
-    status: { type: String, enum: ['Draft', 'Published'], default: 'Published' },
+    id: {
+      type: DataTypes.STRING(64),
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
+    },
+    title: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+    },
+    organization: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+    },
+    year: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+    },
+    description: {
+      type: DataTypes.TEXT,
+      defaultValue: '',
+    },
+    image: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+    },
+    order: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    status: {
+      type: DataTypes.ENUM('Draft', 'Published'),
+      defaultValue: 'Published',
+    },
   },
   {
+    tableName: 'awards',
     timestamps: true,
+    indexes: [
+      { fields: ['status', 'order'] },
+    ],
   }
 );
 
-export default mongoose.models.Award || mongoose.model('Award', AwardSchema);
+Award.prototype.toJSON = function () {
+  const values = { ...this.get() };
+  values._id = values.id;
+  return values;
+};
+
+export default Award;

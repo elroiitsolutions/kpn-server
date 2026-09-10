@@ -12,7 +12,7 @@ export const protect = async (req, res, next) => {
         process.env.JWT_SECRET || 'kpn_promoters_super_secret_jwt_key_2026_estate_platform'
       );
 
-      const user = await User.findById(decoded.id).select('-password');
+      const user = await User.findByPk(decoded.id);
       if (!user) {
         return res.status(401).json({ success: false, message: 'User belonging to token no longer exists' });
       }

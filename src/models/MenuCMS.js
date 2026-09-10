@@ -1,36 +1,41 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const { Schema } = mongoose;
-
-const MenuItemChildSchema = new Schema(
+export const MenuCMS = sequelize.define(
+  'MenuCMS',
   {
-    label: { type: String, required: true },
-    href: { type: String, required: true },
-    order: { type: Number, default: 0 },
-    isEnabled: { type: Boolean, default: true },
-  },
-  { _id: false }
-);
-
-const MenuItemSchema = new Schema(
-  {
-    label: { type: String, required: true },
-    href: { type: String },
-    order: { type: Number, default: 0 },
-    isEnabled: { type: Boolean, default: true },
-    children: { type: [MenuItemChildSchema], default: [] },
-  },
-  { _id: false }
-);
-
-const MenuCMSSchema = new Schema(
-  {
-    name: { type: String, default: 'main_menu', unique: true },
-    items: { type: [MenuItemSchema], default: [] },
+    name: {
+      type: DataTypes.STRING(64),
+      primaryKey: true,
+      defaultValue: 'main_menu',
+    },
+    items: {
+      type: DataTypes.JSON,
+      defaultValue: [],
+    },
   },
   {
+    tableName: 'menu_cms',
     timestamps: true,
   }
 );
 
-export default mongoose.models.MenuCMS || mongoose.model('MenuCMS', MenuCMSSchema);
+const safeParseJson = (val, fallback) => {
+  if (typeof val === 'string') {
+    try {
+      return JSON.parse(val);
+    } catch {
+      return fallback;
+    }
+  }
+  return val !== undefined && val !== null ? val : fallback;
+};
+
+MenuCMS.prototype.toJSON = function () {
+  const values = { ...this.get() };
+  values._id = values.name;
+  values.items = safeParseJson(values.items, []);
+  return values;
+};
+
+export default MenuCMS;

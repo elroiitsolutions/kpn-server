@@ -1,22 +1,65 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const { Schema } = mongoose;
-
-const VideoItemSchema = new Schema(
+export const VideoItem = sequelize.define(
+  'VideoItem',
   {
-    title: { type: String, required: true },
-    project: { type: Schema.Types.ObjectId, ref: 'Project' },
-    projectName: { type: String, default: '' },
-    videoUrl: { type: String, required: true },
-    videoType: { type: String, enum: ['YouTube', 'Vimeo', 'Cloudinary', 'External'], default: 'YouTube' },
-    thumbnailUrl: { type: String, default: '' },
-    description: { type: String, default: '' },
-    order: { type: Number, default: 0 },
-    status: { type: String, enum: ['Draft', 'Published'], default: 'Published' },
+    id: {
+      type: DataTypes.STRING(64),
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
+    },
+    title: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+    },
+    projectId: {
+      type: DataTypes.STRING(64),
+    },
+    projectName: {
+      type: DataTypes.STRING(150),
+      defaultValue: '',
+    },
+    videoUrl: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+    },
+    videoType: {
+      type: DataTypes.ENUM('YouTube', 'Vimeo', 'Cloudinary', 'External'),
+      defaultValue: 'YouTube',
+    },
+    thumbnailUrl: {
+      type: DataTypes.TEXT,
+      defaultValue: '',
+    },
+    description: {
+      type: DataTypes.TEXT,
+      defaultValue: '',
+    },
+    order: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    status: {
+      type: DataTypes.ENUM('Draft', 'Published'),
+      defaultValue: 'Published',
+    },
   },
   {
+    tableName: 'video_items',
     timestamps: true,
+    indexes: [
+      { fields: ['status', 'order'] },
+      { fields: ['projectId'] },
+    ],
   }
 );
 
-export default mongoose.models.VideoItem || mongoose.model('VideoItem', VideoItemSchema);
+VideoItem.prototype.toJSON = function () {
+  const values = { ...this.get() };
+  values._id = values.id;
+  values.project = values.projectId;
+  return values;
+};
+
+export default VideoItem;
