@@ -1,36 +1,43 @@
-import mongoose from 'mongoose';
+import { Op } from 'sequelize';
+import { sequelize } from '../config/db.js';
 import Blog from '../models/Blog.js';
 
 export const getBlogs = async (req, res, next) => {
   try {
     const { category, search, includeDrafts, sort = 'newest', page = 1, limit = 20 } = req.query;
-    const query = {};
+    const where = {};
 
     if (includeDrafts !== 'true') {
-      query.status = 'Published';
+      where.status = 'Published';
     }
 
     if (category && category !== 'All Posts') {
-      query.category = category;
+      where.category = category;
     }
 
     if (search) {
-      query.$or = [
-        { title: new RegExp(String(search), 'i') },
-        { shortDescription: new RegExp(String(search), 'i') },
-        { content: new RegExp(String(search), 'i') },
+      where[Op.or] = [
+        { title: { [Op.like]: `%${String(search).trim()}%` } },
+        { shortDescription: { [Op.like]: `%${String(search).trim()}%` } },
+        { content: { [Op.like]: `%${String(search).trim()}%` } },
       ];
     }
 
-    const sortOption = sort === 'newest' ? { publishedDate: -1, createdAt: -1 } : { viewCount: -1 };
-    const pageNum = parseInt(String(page), 10);
-    const limitNum = parseInt(String(limit), 10);
-    const skip = (pageNum - 1) * limitNum;
+    const order =
+      sort === 'newest'
+        ? [['publishedDate', 'DESC'], ['createdAt', 'DESC']]
+        : [['viewCount', 'DESC'], ['createdAt', 'DESC']];
 
-    const [blogs, total] = await Promise.all([
-      Blog.find(query).sort(sortOption).skip(skip).limit(limitNum),
-      Blog.countDocuments(query),
-    ]);
+    const pageNum = parseInt(String(page), 10) || 1;
+    const limitNum = parseInt(String(limit), 10) || 20;
+    const offset = (pageNum - 1) * limitNum;
+
+    const { rows: blogs, count: total } = await Blog.findAndCountAll({
+      where,
+      order,
+      limit: limitNum,
+      offset,
+    });
 
     res.status(200).json({
       success: true,
@@ -48,14 +55,12 @@ export const getBlogs = async (req, res, next) => {
 export const getBlogBySlug = async (req, res, next) => {
   try {
     const { slug } = req.params;
-    let blog = null;
-
-    if (mongoose.Types.ObjectId.isValid(slug)) {
-      blog = await Blog.findById(slug);
-    }
+    let blog = await Blog.findByPk(slug);
 
     if (!blog) {
-      blog = await Blog.findOne({ slug: new RegExp(`^${String(slug)}$`, 'i') });
+      blog = await Blog.findOne({
+        where: { slug },
+      });
     }
 
     if (!blog) {
@@ -64,7 +69,7 @@ export const getBlogBySlug = async (req, res, next) => {
 
     // Increment view count
     blog.viewCount = (blog.viewCount || 0) + 1;
-    await blog.save({ validateBeforeSave: false });
+    await blog.save();
 
     res.status(200).json({
       success: true,
@@ -97,14 +102,12 @@ export const createBlog = async (req, res, next) => {
 
 export const updateBlog = async (req, res, next) => {
   try {
-    const blog = await Blog.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
-
+    const blog = await Blog.findByPk(req.params.id);
     if (!blog) {
       return res.status(404).json({ success: false, message: 'Article not found' });
     }
+
+    await blog.update(req.body);
 
     res.status(200).json({
       success: true,
@@ -117,10 +120,12 @@ export const updateBlog = async (req, res, next) => {
 
 export const deleteBlog = async (req, res, next) => {
   try {
-    const blog = await Blog.findByIdAndDelete(req.params.id);
+    const blog = await Blog.findByPk(req.params.id);
     if (!blog) {
       return res.status(404).json({ success: false, message: 'Article not found' });
     }
+
+    await blog.destroy();
 
     res.status(200).json({
       success: true,
@@ -133,7 +138,13 @@ export const deleteBlog = async (req, res, next) => {
 
 export const getBlogCategories = async (req, res, next) => {
   try {
-    const categories = await Blog.distinct('category', { status: 'Published' });
+    const categoriesRaw = await Blog.findAll({
+      attributes: [[sequelize.fn('DISTINCT', sequelize.col('category')), 'category']],
+      where: { status: 'Published' },
+      raw: true,
+    });
+    const categories = categoriesRaw.map((c) => c.category).filter(Boolean);
+
     res.status(200).json({
       success: true,
       data: categories,

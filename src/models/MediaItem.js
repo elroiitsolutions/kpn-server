@@ -1,25 +1,61 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const { Schema } = mongoose;
-
-const MediaItemSchema = new Schema(
+export const MediaItem = sequelize.define(
+  'MediaItem',
   {
-    title: { type: String, required: true },
-    description: { type: String, default: '' },
-    category: { type: String, default: 'General' },
-    mediaType: {
-      type: String,
-      enum: ['image', 'video', 'news', 'press', 'event'],
-      default: 'image',
+    id: {
+      type: DataTypes.STRING(64),
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
     },
-    fileUrl: { type: String, required: true },
-    thumbnailUrl: { type: String, default: '' },
-    publishedDate: { type: Date, default: Date.now },
-    status: { type: String, enum: ['Draft', 'Published'], default: 'Published' },
+    title: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+    },
+    description: {
+      type: DataTypes.TEXT,
+      defaultValue: '',
+    },
+    category: {
+      type: DataTypes.STRING(100),
+      defaultValue: 'General',
+    },
+    mediaType: {
+      type: DataTypes.ENUM('image', 'video', 'news', 'press', 'event'),
+      defaultValue: 'image',
+    },
+    fileUrl: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+    },
+    thumbnailUrl: {
+      type: DataTypes.TEXT,
+      defaultValue: '',
+    },
+    publishedDate: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+    status: {
+      type: DataTypes.ENUM('Draft', 'Published'),
+      defaultValue: 'Published',
+    },
   },
   {
+    tableName: 'media_items',
     timestamps: true,
+    indexes: [
+      { fields: ['status'] },
+      { fields: ['mediaType'] },
+    ],
   }
 );
 
-export default mongoose.models.MediaItem || mongoose.model('MediaItem', MediaItemSchema);
+MediaItem.prototype.toJSON = function () {
+  const values = { ...this.get() };
+  values._id = values.id;
+  return values;
+};
+
+export default MediaItem;

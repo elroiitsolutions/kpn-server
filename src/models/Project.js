@@ -1,204 +1,242 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const { Schema } = mongoose;
-
-const FloorPlanSchema = new Schema(
+export const Project = sequelize.define(
+  'Project',
   {
-    title: { type: String, required: true },
-    bhk: { type: String, required: true },
-    sqft: { type: String, required: true },
-    imageUrl: { type: String, required: true },
-    description: { type: String },
-  },
-  { _id: false }
-);
-
-const AmenitySchema = new Schema(
-  {
-    name: { type: String, required: true },
-    icon: { type: String, default: 'CheckCircle' },
-    description: { type: String },
-  },
-  { _id: false }
-);
-
-const NearbyLocationSchema = new Schema(
-  {
-    name: { type: String, required: true },
-    distance: { type: String, required: true },
-    description: { type: String },
-  },
-  { _id: false }
-);
-
-const FAQSchema = new Schema(
-  {
-    question: { type: String, required: true },
-    answer: { type: String, required: true },
-    order: { type: Number, default: 0 },
-  },
-  { _id: false }
-);
-
-const ProjectSchema = new Schema(
-  {
+    id: {
+      type: DataTypes.STRING(64),
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
+    },
     name: {
-      type: String,
-      required: [true, 'Please add project title / name'],
-      trim: true,
-      maxlength: [120, 'Name cannot exceed 120 characters'],
+      type: DataTypes.STRING(150),
+      allowNull: false,
     },
     slug: {
-      type: String,
-      required: [true, 'Please specify slug identifier'],
+      type: DataTypes.STRING(150),
+      allowNull: false,
       unique: true,
-      lowercase: true,
-      trim: true,
     },
     propertyType: {
-      type: String,
-      enum: ['Apartments', 'Plots', 'Villas', 'Commercial', 'Industrial'],
-      required: [true, 'Please specify property category'],
+      type: DataTypes.ENUM('Apartments', 'Plots', 'Villas', 'Commercial', 'Industrial'),
+      allowNull: false,
     },
     status: {
-      type: String,
-      enum: ['Upcoming', 'Ongoing', 'Completed', 'Sold Out'],
-      default: 'Ongoing',
+      type: DataTypes.ENUM('Upcoming', 'Ongoing', 'Completed', 'Sold Out'),
+      defaultValue: 'Ongoing',
     },
     city: {
-      type: String,
-      default: 'Chennai',
-      trim: true,
+      type: DataTypes.STRING(100),
+      defaultValue: 'Chennai',
     },
     location: {
-      type: String,
-      required: [true, 'Please provide location string'],
-      trim: true,
+      type: DataTypes.STRING(255),
+      allowNull: false,
     },
     address: {
-      type: String,
-      default: '',
+      type: DataTypes.TEXT,
+      defaultValue: '',
     },
     bhk: {
-      type: String,
-      required: [true, 'Please specify unit configurations'],
+      type: DataTypes.STRING(100),
+      allowNull: false,
     },
     budget: {
-      type: String,
-      required: [true, 'Please specify starting budget/pricing display'],
+      type: DataTypes.STRING(100),
+      allowNull: false,
     },
     pricePerSqFt: {
-      type: String,
-      default: '',
+      type: DataTypes.STRING(100),
+      defaultValue: '',
     },
     shortDescription: {
-      type: String,
-      default: '',
-      maxlength: [300, 'Short summary cannot exceed 300 characters'],
+      type: DataTypes.TEXT,
+      defaultValue: '',
     },
     description: {
-      type: String,
-      default: '',
+      type: DataTypes.TEXT('long'),
+      defaultValue: '',
     },
     handoverTimeline: {
-      type: String,
-      default: 'Ready to Construct',
+      type: DataTypes.STRING(100),
+      defaultValue: 'Ready to Construct',
     },
     commencementDate: {
-      type: String,
-      default: '',
+      type: DataTypes.STRING(100),
+      defaultValue: '',
+    },
+    totalBlocks: {
+      type: DataTypes.INTEGER,
+      defaultValue: 1,
+    },
+    totalFloors: {
+      type: DataTypes.INTEGER,
+      defaultValue: 1,
     },
     totalUnits: {
-      type: Number,
-      default: 0,
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
     },
     availableUnits: {
-      type: Number,
-      default: 0,
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    soldUnits: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    reservedUnits: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    bookedUnits: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    blockedUnits: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
     },
     image: {
-      type: String,
-      required: [true, 'Please supply main cover display image'],
+      type: DataTypes.TEXT,
+      allowNull: false,
     },
     galleryImages: {
-      type: [String],
-      default: [],
+      type: DataTypes.JSON,
+      defaultValue: [],
     },
     walkthroughVideoUrl: {
-      type: String,
-      default: '',
+      type: DataTypes.TEXT,
+      defaultValue: '',
     },
     virtualTourUrl: {
-      type: String,
-      default: '',
+      type: DataTypes.TEXT,
+      defaultValue: '',
     },
     streetViewUrl: {
-      type: String,
-      default: '',
+      type: DataTypes.TEXT,
+      defaultValue: '',
     },
     brochureUrl: {
-      type: String,
-      default: '',
+      type: DataTypes.TEXT,
+      defaultValue: '',
     },
     masterPlanUrl: {
-      type: String,
-      default: '',
+      type: DataTypes.TEXT,
+      defaultValue: '',
     },
     floorPlans: {
-      type: [FloorPlanSchema],
-      default: [],
+      type: DataTypes.JSON,
+      defaultValue: [],
+    },
+    blocks: {
+      type: DataTypes.JSON,
+      defaultValue: [],
+    },
+    plots: {
+      type: DataTypes.JSON,
+      defaultValue: [],
+    },
+    layoutImages: {
+      type: DataTypes.JSON,
+      defaultValue: [],
     },
     amenities: {
-      type: [AmenitySchema],
-      default: [],
+      type: DataTypes.JSON,
+      defaultValue: [],
     },
     specifications: {
-      structure: { type: String, default: '' },
-      flooring: { type: String, default: '' },
-      doors: { type: String, default: '' },
-      windows: { type: String, default: '' },
-      electrical: { type: String, default: '' },
-      plumbing: { type: String, default: '' },
-      kitchen: { type: String, default: '' },
-      others: { type: String, default: '' },
+      type: DataTypes.JSON,
+      defaultValue: {
+        structure: '',
+        flooring: '',
+        doors: '',
+        windows: '',
+        electrical: '',
+        plumbing: '',
+        kitchen: '',
+        others: '',
+      },
     },
     nearbyLocations: {
-      type: [NearbyLocationSchema],
-      default: [],
+      type: DataTypes.JSON,
+      defaultValue: [],
     },
     faqs: {
-      type: [FAQSchema],
-      default: [],
+      type: DataTypes.JSON,
+      defaultValue: [],
     },
     mapEmbedUrl: {
-      type: String,
-      default: '',
+      type: DataTypes.TEXT,
+      defaultValue: '',
     },
     latitude: {
-      type: Number,
+      type: DataTypes.DOUBLE,
     },
     longitude: {
-      type: Number,
+      type: DataTypes.DOUBLE,
     },
     isFeatured: {
-      type: Boolean,
-      default: false,
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
     },
     isPublished: {
-      type: Boolean,
-      default: true,
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
     },
     order: {
-      type: Number,
-      default: 0,
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    version: {
+      type: DataTypes.INTEGER,
+      defaultValue: 1,
+      allowNull: false,
     },
   },
   {
+    tableName: 'projects',
     timestamps: true,
+    indexes: [
+      { fields: ['propertyType', 'status'] },
+      { fields: ['isPublished', 'isFeatured'] },
+      { fields: ['slug'] },
+    ],
   }
 );
 
-ProjectSchema.index({ propertyType: 1, status: 1 });
-ProjectSchema.index({ isPublished: 1, isFeatured: 1 });
+const safeParseJson = (val, fallback) => {
+  if (typeof val === 'string') {
+    try {
+      return JSON.parse(val);
+    } catch {
+      return fallback;
+    }
+  }
+  return val !== undefined && val !== null ? val : fallback;
+};
 
-export default mongoose.models.Project || mongoose.model('Project', ProjectSchema);
+Project.prototype.toJSON = function () {
+  const values = { ...this.get() };
+  values._id = values.id;
+  values.version = values.version || 1;
+  values.totalBlocks = values.totalBlocks || 1;
+  values.totalFloors = values.totalFloors || 1;
+  values.bookedUnits = values.bookedUnits !== undefined ? values.bookedUnits : (values.soldUnits || 0);
+  values.soldUnits = values.bookedUnits;
+  values.blockedUnits = values.blockedUnits !== undefined ? values.blockedUnits : (values.reservedUnits || 0);
+  values.reservedUnits = values.blockedUnits;
+  values.galleryImages = safeParseJson(values.galleryImages, []);
+  values.floorPlans = safeParseJson(values.floorPlans, []);
+  values.blocks = safeParseJson(values.blocks, []);
+  values.plots = safeParseJson(values.plots, []);
+  values.layoutImages = safeParseJson(values.layoutImages, []);
+  values.amenities = safeParseJson(values.amenities, []);
+  values.specifications = safeParseJson(values.specifications, {});
+  values.nearbyLocations = safeParseJson(values.nearbyLocations, []);
+  values.faqs = safeParseJson(values.faqs, []);
+  return values;
+};
+
+export default Project;

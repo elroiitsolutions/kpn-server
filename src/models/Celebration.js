@@ -1,27 +1,81 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const { Schema } = mongoose;
-
-const CelebrationSchema = new Schema(
+export const Celebration = sequelize.define(
+  'Celebration',
   {
-    title: { type: String, required: true },
-    subheading: { type: String, required: true },
-    description: { type: String, default: '' },
-    image: { type: String, required: true },
-    gallery: [{ type: String }],
-    date: { type: String, default: '' },
-    year: { type: String, default: '2025' },
-    category: {
-      type: String,
-      enum: ['Trip', 'Office', 'Launch', 'Festival', 'Milestone', 'General'],
-      default: 'General',
+    id: {
+      type: DataTypes.STRING(64),
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
     },
-    order: { type: Number, default: 0 },
-    status: { type: String, enum: ['Draft', 'Published'], default: 'Published' },
+    title: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+    },
+    subheading: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+    },
+    description: {
+      type: DataTypes.TEXT,
+      defaultValue: '',
+    },
+    image: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+    },
+    gallery: {
+      type: DataTypes.JSON,
+      defaultValue: [],
+    },
+    date: {
+      type: DataTypes.STRING(50),
+      defaultValue: '',
+    },
+    year: {
+      type: DataTypes.STRING(20),
+      defaultValue: '2025',
+    },
+    category: {
+      type: DataTypes.ENUM('Trip', 'Office', 'Launch', 'Festival', 'Milestone', 'General'),
+      defaultValue: 'General',
+    },
+    order: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    status: {
+      type: DataTypes.ENUM('Draft', 'Published'),
+      defaultValue: 'Published',
+    },
   },
   {
+    tableName: 'celebrations',
     timestamps: true,
+    indexes: [
+      { fields: ['status', 'order'] },
+      { fields: ['category'] },
+    ],
   }
 );
 
-export default mongoose.models.Celebration || mongoose.model('Celebration', CelebrationSchema);
+const safeParseJson = (val, fallback) => {
+  if (typeof val === 'string') {
+    try {
+      return JSON.parse(val);
+    } catch {
+      return fallback;
+    }
+  }
+  return val !== undefined && val !== null ? val : fallback;
+};
+
+Celebration.prototype.toJSON = function () {
+  const values = { ...this.get() };
+  values._id = values.id;
+  values.gallery = safeParseJson(values.gallery, []);
+  return values;
+};
+
+export default Celebration;

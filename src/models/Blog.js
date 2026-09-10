@@ -1,85 +1,108 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const { Schema } = mongoose;
-
-const BlogSchema = new Schema(
+export const Blog = sequelize.define(
+  'Blog',
   {
+    id: {
+      type: DataTypes.STRING(64),
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
+    },
     title: {
-      type: String,
-      required: [true, 'Please add article title'],
-      trim: true,
+      type: DataTypes.STRING(255),
+      allowNull: false,
     },
     slug: {
-      type: String,
-      required: true,
+      type: DataTypes.STRING(255),
+      allowNull: false,
       unique: true,
-      lowercase: true,
-      trim: true,
     },
     author: {
-      type: String,
-      default: 'KPN Editorial Team',
+      type: DataTypes.STRING(100),
+      defaultValue: 'KPN Editorial Team',
     },
     featuredImage: {
-      type: String,
-      required: true,
+      type: DataTypes.TEXT,
+      allowNull: false,
     },
     bannerImage: {
-      type: String,
+      type: DataTypes.TEXT,
     },
     shortDescription: {
-      type: String,
-      required: true,
+      type: DataTypes.TEXT,
+      allowNull: false,
     },
     content: {
-      type: String,
-      required: true,
+      type: DataTypes.TEXT('long'),
+      allowNull: false,
     },
     category: {
-      type: String,
-      required: true,
-      default: 'General',
-      index: true,
+      type: DataTypes.STRING(100),
+      defaultValue: 'General',
     },
     tags: {
-      type: [String],
-      default: [],
+      type: DataTypes.JSON,
+      defaultValue: [],
     },
     galleryImages: {
-      type: [String],
-      default: [],
+      type: DataTypes.JSON,
+      defaultValue: [],
     },
     quoteText: {
-      type: String,
+      type: DataTypes.TEXT,
     },
     quoteAuthor: {
-      type: String,
-      default: 'John Doe',
+      type: DataTypes.STRING(100),
+      defaultValue: 'John Doe',
     },
     seoTitle: {
-      type: String,
+      type: DataTypes.STRING(255),
     },
     seoDescription: {
-      type: String,
+      type: DataTypes.TEXT,
     },
     status: {
-      type: String,
-      enum: ['Draft', 'Published', 'Archived'],
-      default: 'Draft',
-      index: true,
+      type: DataTypes.ENUM('Draft', 'Published', 'Archived'),
+      defaultValue: 'Draft',
     },
     publishedDate: {
-      type: Date,
-      default: Date.now,
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
     },
     viewCount: {
-      type: Number,
-      default: 0,
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
     },
   },
   {
+    tableName: 'blogs',
     timestamps: true,
+    indexes: [
+      { fields: ['category'] },
+      { fields: ['status'] },
+      { fields: ['slug'] },
+    ],
   }
 );
 
-export default mongoose.models.Blog || mongoose.model('Blog', BlogSchema);
+const safeParseJson = (val, fallback) => {
+  if (typeof val === 'string') {
+    try {
+      return JSON.parse(val);
+    } catch {
+      return fallback;
+    }
+  }
+  return val !== undefined && val !== null ? val : fallback;
+};
+
+Blog.prototype.toJSON = function () {
+  const values = { ...this.get() };
+  values._id = values.id;
+  values.tags = safeParseJson(values.tags, []);
+  values.galleryImages = safeParseJson(values.galleryImages, []);
+  return values;
+};
+
+export default Blog;
