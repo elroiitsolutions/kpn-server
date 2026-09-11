@@ -224,6 +224,11 @@ class EmailNotificationProvider {
 
     const subject = `🚨 [New Lead Alert] ${enquiry.name} (${enquiry.phone}) - ${enquiry.projectName || enquiry.source || 'Website'}`;
     const logoConfig = getLogoConfig();
+    const adminUrl =
+      process.env.ADMIN_URL ||
+      (process.env.CLIENT_URL && !process.env.CLIENT_URL.includes('localhost')
+        ? `${process.env.CLIENT_URL.replace(/\/$/, '')}/admin/enquiries`
+        : 'https://kpndemos.netlify.app/admin/enquiries');
 
     const html = `
 <!DOCTYPE html>
@@ -274,7 +279,7 @@ class EmailNotificationProvider {
       </table>
 
       <div style="margin-top: 25px; text-align: center;">
-        <a href="http://localhost:3001/admin/enquiries" style="display: inline-block; background: #f12131; color: #ffffff; padding: 12px 24px; border-radius: 50px; font-weight: bold; text-decoration: none; font-size: 13px;">
+        <a href="${adminUrl}" style="display: inline-block; background: #f12131; color: #ffffff; padding: 12px 24px; border-radius: 50px; font-weight: bold; text-decoration: none; font-size: 13px;">
           View in Admin Control Center →
         </a>
       </div>
