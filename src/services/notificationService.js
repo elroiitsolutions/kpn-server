@@ -224,11 +224,13 @@ class EmailNotificationProvider {
 
     const subject = `🚨 [New Lead Alert] ${enquiry.name} (${enquiry.phone}) - ${enquiry.projectName || enquiry.source || 'Website'}`;
     const logoConfig = getLogoConfig();
+
     const adminUrl =
-      process.env.ADMIN_URL ||
-      (process.env.CLIENT_URL && !process.env.CLIENT_URL.includes('localhost')
-        ? `${process.env.CLIENT_URL.replace(/\/$/, '')}/admin/enquiries`
-        : 'https://kpndemos.netlify.app/admin/enquiries');
+      process.env.ADMIN_URL && !process.env.ADMIN_URL.includes('localhost')
+        ? process.env.ADMIN_URL
+        : (process.env.CLIENT_URL && !process.env.CLIENT_URL.includes('localhost')
+            ? `${process.env.CLIENT_URL.replace(/\/$/, '')}/admin/enquiries`
+            : 'https://kpndemos.netlify.app/admin/enquiries');
 
     const html = `
 <!DOCTYPE html>
