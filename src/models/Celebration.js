@@ -38,7 +38,7 @@ export const Celebration = sequelize.define(
       defaultValue: '2025',
     },
     category: {
-      type: DataTypes.ENUM('Trip', 'Office', 'Launch', 'Festival', 'Milestone', 'General'),
+      type: DataTypes.ENUM('Trip', 'Office', 'Launch', 'Festival', 'Milestone', 'Meeting', 'General'),
       defaultValue: 'General',
     },
     order: {

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   getCelebrations,
+  getCelebrationById,
   getAdminCelebrations,
   createCelebration,
   updateCelebration,
@@ -10,8 +11,9 @@ import { protect, authorize } from '../middlewares/auth.js';
 
 const router = Router();
 
-// Public route
+// Public routes
 router.get('/', getCelebrations);
+router.get('/:id', getCelebrationById);
 
 // Admin routes
 router.get('/admin/all', protect, authorize('admin', 'superadmin'), getAdminCelebrations);
