@@ -45,6 +45,21 @@ export const getAdminCelebrations = async (req, res, next) => {
   }
 };
 
+export const getCelebrationById = async (req, res, next) => {
+  try {
+    const celebration = await Celebration.findByPk(req.params.id);
+    if (!celebration) {
+      return res.status(404).json({ success: false, message: 'Celebration not found' });
+    }
+    res.status(200).json({
+      success: true,
+      data: celebration,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const createCelebration = async (req, res, next) => {
   try {
     const celebration = await Celebration.create(req.body);
