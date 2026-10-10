@@ -50,6 +50,14 @@ export const Project = sequelize.define(
       type: DataTypes.STRING(100),
       defaultValue: '',
     },
+    projectArea: {
+      type: DataTypes.STRING(150),
+      defaultValue: '',
+    },
+    plotSizes: {
+      type: DataTypes.STRING(150),
+      defaultValue: '',
+    },
     shortDescription: {
       type: DataTypes.TEXT,
       defaultValue: '',
