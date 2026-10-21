@@ -33,6 +33,24 @@ export const connectDB = async () => {
     // Sync tables automatically in development without dropping existing data
     await sequelize.sync({ alter: false });
     console.log(`[MySQL/phpMyAdmin] Database tables synchronized successfully.`);
+
+    // Safely ensure recently added columns exist in MySQL without losing any data
+    try {
+      const [columns] = await sequelize.query("SHOW COLUMNS FROM `projects`");
+      const existingColNames = new Set(columns.map((c) => c.Field));
+
+      if (!existingColNames.has('projectArea')) {
+        await sequelize.query("ALTER TABLE `projects` ADD COLUMN `projectArea` VARCHAR(150) DEFAULT ''");
+        console.log("[Migration] Added missing 'projectArea' column to 'projects' table.");
+      }
+
+      if (!existingColNames.has('plotSizes')) {
+        await sequelize.query("ALTER TABLE `projects` ADD COLUMN `plotSizes` VARCHAR(150) DEFAULT ''");
+        console.log("[Migration] Added missing 'plotSizes' column to 'projects' table.");
+      }
+    } catch (migErr) {
+      console.warn('[Migration Notice]:', migErr.message);
+    }
   } catch (error) {
     console.error(`[MySQL Connection Error]: ${error.message}`);
     process.exit(1);
