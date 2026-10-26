@@ -12,8 +12,7 @@ package-lock.json.bak
 !.env.example
 *.env
 
-# Local File Uploads & Temp Storage
-uploads/
+# Local File Uploads & Temp Storage (uploads/ is tracked for live EC2 deployment)
 temp/
 tmp/
 
