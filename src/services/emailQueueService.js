@@ -142,13 +142,19 @@ class EmailQueueService {
         await job.save();
 
         try {
-          await transporter.sendMail({
+          const mailOptions = {
             from: fromAddress,
             to: job.recipient,
             subject: job.subject,
             html: job.htmlContent,
             attachments,
-          });
+          };
+
+          if (job.metadata && job.metadata.cc) {
+            mailOptions.cc = job.metadata.cc;
+          }
+
+          await transporter.sendMail(mailOptions);
 
           // Delivery successful
           job.status = 'SENT';

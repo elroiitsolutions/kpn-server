@@ -53,6 +53,115 @@ function getTransporter() {
     },
   });
 }
+ 
+/**
+ * Intelligently resolves destination recipient, CC, and email styling based on form source / category.
+ */
+function resolveLeadRouting(enquiry) {
+  const source = String(enquiry.source || '').toLowerCase();
+  const project = String(enquiry.projectName || '').toLowerCase();
+
+  // 1. Investor Form / Program -> Managing Director (MD) Desk
+  if (source.includes('investor') || project.includes('investor')) {
+    const to =
+      process.env.EMAIL_INVESTORS_TO ||
+      process.env.MD_EMAIL ||
+      'md@kpnpromoters.in';
+    const cc = process.env.EMAIL_INVESTORS_CC || '';
+    return {
+      to,
+      cc,
+      department: 'Executive Office (MD Desk)',
+      badge: '💼 High-Priority Investor Inquiry',
+      headerBg: '#0f766e',
+      subject: `💼 [High-Priority Investor Lead] ${enquiry.name} (${enquiry.phone}) - Investors Program`,
+    };
+  }
+
+  // 2. Joint Development -> Joint Dev & Land Acquisition Team
+  if (
+    source.includes('joint development') ||
+    project.includes('joint development') ||
+    source.includes('joint_dev')
+  ) {
+    const to =
+      process.env.EMAIL_JOINT_DEV_TO ||
+      'kpnsalesteam@gmail.com';
+    const cc = process.env.EMAIL_JOINT_DEV_CC || '';
+    return {
+      to,
+      cc,
+      department: 'Joint Development & Land Acquisition Team',
+      badge: '🏗️ Joint Development Proposal',
+      headerBg: '#b45309',
+      subject: `🏗️ [Joint Development Lead] ${enquiry.name} (${enquiry.phone}) - Land Proposal`,
+    };
+  }
+
+  // 3. Channel Partners Desk
+  if (source.includes('channel partner') || project.includes('channel partner')) {
+    const to =
+      process.env.EMAIL_CHANNEL_PARTNERS_TO ||
+      'kpnsalesteam@gmail.com';
+    const cc = process.env.EMAIL_CHANNEL_PARTNERS_CC || '';
+    return {
+      to,
+      cc,
+      department: 'Channel Partner & Broker Network Desk',
+      badge: '🤝 Channel Partner Application',
+      headerBg: '#4338ca',
+      subject: `🤝 [Channel Partner Lead] ${enquiry.name} (${enquiry.phone})`,
+    };
+  }
+
+  // 4. NRI Client Desk
+  if (source.includes('nri') || project.includes('nri')) {
+    const to =
+      process.env.EMAIL_NRI_TO ||
+      'kpnsalesteam@gmail.com';
+    const cc = process.env.EMAIL_NRI_CC || '';
+    return {
+      to,
+      cc,
+      department: 'NRI Client Relationship Desk',
+      badge: '🌍 NRI Property Consultation',
+      headerBg: '#0284c7',
+      subject: `🌍 [NRI Lead Alert] ${enquiry.name} (${enquiry.phone})`,
+    };
+  }
+
+  // 5. Industrial Land Desk
+  if (source.includes('industrial') || project.includes('industrial')) {
+    const to =
+      process.env.EMAIL_INDUSTRIAL_TO ||
+      'kpnsalesteam@gmail.com';
+    const cc = process.env.EMAIL_INDUSTRIAL_CC || '';
+    return {
+      to,
+      cc,
+      department: 'Industrial & Commercial Land Desk',
+      badge: '🏭 Industrial Land Inquiry',
+      headerBg: '#334155',
+      subject: `🏭 [Industrial Land Lead] ${enquiry.name} (${enquiry.phone})`,
+    };
+  }
+
+  // 6. Default (Project Bookings, Site Visits, Contact Page, General Leads)
+  const defaultTo =
+    process.env.NOTIFICATION_EMAIL_TO ||
+    process.env.ADMIN_EMAIL ||
+    'kpnsalesteam@gmail.com';
+  const defaultCc = process.env.NOTIFICATION_EMAIL_CC || '';
+
+  return {
+    to: defaultTo,
+    cc: defaultCc,
+    department: 'Sales & Customer Relations Team',
+    badge: '🚨 New Property Lead Captured',
+    headerBg: '#29247c',
+    subject: `🚨 [New Lead Alert] ${enquiry.name} (${enquiry.phone}) - ${enquiry.projectName || enquiry.source || 'Website'}`,
+  };
+}
 
 /**
  * Provider responsible for:
@@ -207,14 +316,10 @@ class EmailNotificationProvider {
   }
 
   /**
-   * 2. Send immediate alert email to KPN Admin / Sales Team
+   * 2. Send dynamic alert email routed to specific department (MD Desk, Joint Dev, Sales, etc.)
    */
   async sendAdminAlert(enquiry) {
-    const adminEmail =
-      process.env.NOTIFICATION_EMAIL_TO ||
-      process.env.ADMIN_EMAIL ||
-      'kpnsalesteam@gmail.com';
-
+    const routing = resolveLeadRouting(enquiry);
     const transporter = getTransporter();
     const fromAddress =
       process.env.SMTP_FROM ||
@@ -222,7 +327,7 @@ class EmailNotificationProvider {
         ? `"KPN Website Leads" <${process.env.SMTP_USER}>`
         : '"KPN Website Leads" <leads@kpnpromoters.in>');
 
-    const subject = `🚨 [New Lead Alert] ${enquiry.name} (${enquiry.phone}) - ${enquiry.projectName || enquiry.source || 'Website'}`;
+    const subject = routing.subject;
     const logoConfig = getLogoConfig();
 
     const html = `
@@ -230,7 +335,7 @@ class EmailNotificationProvider {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>New Lead Alert</title>
+  <title>${routing.badge}</title>
 </head>
 <body style="font-family: Arial, sans-serif; background: #f1f5f9; padding: 25px; color: #1e293b;">
   <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
@@ -239,9 +344,11 @@ class EmailNotificationProvider {
         <img src="${logoConfig.src}" alt="KPN Promoters" width="150" height="66" style="display: block; margin: 0 auto; max-width: 150px; width: 150px; height: auto; border: 0;" />
       </a>
     </div>
-    <div style="background: #29247c; padding: 20px; color: #ffffff;">
-      <h2 style="margin: 0; font-size: 20px;">🚨 New Lead Captured on Website</h2>
-      <p style="margin: 5px 0 0 0; font-size: 12px; color: #fca5a5;">Source: ${enquiry.source || 'Website Form'}</p>
+    <div style="background: ${routing.headerBg}; padding: 20px; color: #ffffff;">
+      <h2 style="margin: 0; font-size: 20px;">${routing.badge}</h2>
+      <p style="margin: 5px 0 0 0; font-size: 12px; color: #e2e8f0;">
+        <strong>Target Desk:</strong> ${routing.department} &bull; <strong>Source:</strong> ${enquiry.source || 'Website Form'}
+      </p>
     </div>
     <div style="padding: 25px;">
       <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
@@ -260,12 +367,22 @@ class EmailNotificationProvider {
           <td style="padding: 8px 0; color: #0f172a;">${enquiry.email ? `<a href="mailto:${enquiry.email}" style="color: #29247c;">${enquiry.email}</a>` : 'Not provided'}</td>
         </tr>
         <tr style="border-bottom: 1px solid #f1f5f9;">
-          <td style="padding: 8px 0; font-weight: bold; color: #64748b;">Project / Category:</td>
+          <td style="padding: 8px 0; font-weight: bold; color: #64748b;">Program / Category:</td>
           <td style="padding: 8px 0; font-weight: bold; color: #29247c;">${enquiry.projectName || 'General Inquiry'}</td>
         </tr>
         <tr style="border-bottom: 1px solid #f1f5f9;">
-          <td style="padding: 8px 0; font-weight: bold; color: #64748b;">Message / Requirement:</td>
-          <td style="padding: 8px 0; color: #334155; font-style: italic;">${enquiry.message || 'No additional message.'}</td>
+          <td style="padding: 8px 0; font-weight: bold; color: #64748b;">Form Source:</td>
+          <td style="padding: 8px 0; font-weight: 600; color: #475569;">${enquiry.source || 'Website Form'}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 8px 0; font-weight: bold; color: #64748b;">Routed Recipient:</td>
+          <td style="padding: 8px 0; font-weight: 600; color: #0f766e;">
+            ${routing.to}${routing.cc ? ` (CC: ${routing.cc})` : ''}
+          </td>
+        </tr>
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 8px 0; font-weight: bold; color: #64748b;">Message / Requirements:</td>
+          <td style="padding: 8px 0; color: #334155; font-style: italic;">${enquiry.message || 'No additional message provided.'}</td>
         </tr>
         <tr>
           <td style="padding: 8px 0; font-weight: bold; color: #64748b;">Timestamp:</td>
@@ -286,7 +403,7 @@ class EmailNotificationProvider {
 
     try {
       await emailQueueService.enqueueEmail({
-        recipient: adminEmail,
+        recipient: routing.to,
         recipientType: 'admin',
         subject,
         htmlContent: html,
@@ -296,11 +413,13 @@ class EmailNotificationProvider {
           phone: enquiry.phone,
           unitNumber: enquiry.unitNumber,
           projectName: enquiry.projectName,
+          department: routing.department,
+          cc: routing.cc || undefined,
         },
       });
       return true;
     } catch (err) {
-      console.warn(`[Notification] Failed to enqueue admin alert to ${adminEmail}:`, err.message);
+      console.warn(`[Notification] Failed to enqueue admin alert to ${routing.to}:`, err.message);
       return false;
     }
   }
